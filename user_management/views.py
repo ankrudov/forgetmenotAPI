@@ -2,6 +2,8 @@ from django.shortcuts import render
 from rest_framework import generics, status
 from rest_framework.response import Response
 from .serializers import UserSerializer
+# from rest_framework_jwt.serializers import JSONWebTokenSerializer
+# from rest_framework_jwt.views import ObtainJSONWebToken
 
 # Create your views here.
 class CreateUserView(generics.CreateAPIView):
@@ -22,5 +24,4 @@ class CreateUserView(generics.CreateAPIView):
             'message':f'User: {user.username} created succesfully, Please check your email for verification.'
         }
 
-        return Response(response_data, status=status.HTTP_201_CREATED)
-            
+        return Response(response_data, status=status.HTTP_201_CREATED)     
