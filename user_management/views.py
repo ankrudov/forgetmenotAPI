@@ -1,11 +1,11 @@
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth import get_user_model
-from .models import CustomUser
+from .models import CustomUserV2
 from django.utils import timezone
 from rest_framework import generics, status
 from rest_framework.response import Response
 from .serializers import UserSerializer
-from rest_framework_jwt.serializers import JSONWebTokenSerializer
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 from datetime import timedelta
 
@@ -32,7 +32,8 @@ class CreateUserView(generics.CreateAPIView):
 
 #LoginView logs in a user and returns a JWT token
 class LoginView(TokenObtainPairView):
-    serializer_class = JSONWebTokenSerializer
+    #specify the serializer class that the view will use for validating and parsing the incoming data and for serializing the outgoing data.
+    serializer_class = TokenObtainPairSerializer
     
     def post(self, request, *args, **kwargs):
         ##Get username and password from the request
@@ -41,7 +42,7 @@ class LoginView(TokenObtainPairView):
 
         ##Check if the user exists
         try:
-            user = CustomUser.objects.get(username = username)
+            user = CustomUserV2.objects.get(username = username)
         except ObjectDoesNotExist:
             return Response({'error': 'Username does not exist'}, status=status.HTTP_400_BAD_REQUEST)
         
@@ -70,4 +71,13 @@ class LoginView(TokenObtainPairView):
             user.save()
 
         #continue with the regular login flow
-        return super().post(request, *args, **kwargs)
+        token_response = super().post(request, *args, **kwargs)
+        token = token_response.data
+        user_serializer = UserSerializer(user)
+        
+        #return the response with the user data, refresh token and access token
+        return Response({
+            'user': user_serializer.data,
+            'access_token': token.get('access'),
+            'refresh_token':token.get('refresh')
+        }, status=200)

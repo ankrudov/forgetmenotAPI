@@ -2,8 +2,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 
 # the user model is a table in charge of holding user information for user management
-class CustomUser(AbstractUser): 
-    email = models.EmailField(unique=True)
+class CustomUserV2(AbstractUser): 
     phone_number = models.CharField(max_length=100)
     updated_on = models.DateTimeField(auto_now=True)
     failed_login_attempts = models.IntegerField(default=0)
@@ -13,4 +12,4 @@ class CustomUser(AbstractUser):
         return self.username
     
     class Meta:
-        db_table = 'users'
+        db_table = 'users_V2'

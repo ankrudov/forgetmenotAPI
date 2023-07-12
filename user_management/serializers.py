@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from email_validator import validate_email, EmailNotValidError
-from .models import CustomUser
+from .models import CustomUserV2
 
 class UserSerializer(serializers.ModelSerializer):
     #validate email, phonenumber
@@ -23,15 +23,17 @@ class UserSerializer(serializers.ModelSerializer):
         return instance
     #when serializer.save() is called for a PUT or PATCH request, hash password before saving the user instance
     def update(self, instance, validated_data):
-        for attr, value in validated_data:
+        for attr, value in validated_data.items():
             if attr == 'password':
                 instance.set_password(value)
             else:
                 setattr(instance,attr,value)
+        instance.save()
+        return instance
 
     class Meta:
-        model = CustomUser
-        fields = ['pk', 'username', 'email', 'phone_number', 'updated_on', 'failed_login_attempts', 'last_failed_login']
+        model = CustomUserV2
+        fields = ['pk', 'username', 'phone_number', 'updated_on', 'failed_login_attempts', 'last_failed_login', 'is_superuser', 'first_name', 'last_name', 'email', 'is_staff', 'is_active', 'password']
         extra_kwargs = {
             'password':{'write_only':True}
         }
