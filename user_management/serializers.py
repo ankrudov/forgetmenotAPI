@@ -37,3 +37,21 @@ class UserSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             'password':{'write_only':True}
         }
+
+#UpdatePasswordSerializer hashes the password on update and takes in a new_password from the request
+class UpdatePasswordSerializer(UserSerializer):
+    new_password = serializers.CharField(write_only=True, required=True)
+    def update(self, instance, validated_data):
+        password = validated_data.pop('new_password', None)
+        if password:
+            instance.set_password(password)
+        instance.save()
+        return instance
+    
+    class Meta(UserSerializer.Meta):
+        fields = ['new_password']
+
+#TODO CREATE DELETE SERIALIZER WHICH TAKES IN THE PASSWORD
+class DeleteSerializer(UserSerializer):
+    class Meta(UserSerializer.Meta):
+        fields = ['password']
