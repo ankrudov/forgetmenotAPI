@@ -1,15 +1,17 @@
 from datetime import timedelta
 
 from .models import CustomUserV2
+from .services import verify_password, delete_user
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import generics, status
 from rest_framework.response import Response
-from .serializers import UserSerializer, UpdatePasswordSerializer
+from .serializers import UserSerializer, UpdatePasswordSerializer, DeleteSerializer
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework.permissions import IsAuthenticated
+
 
 # CreateUserView creates a user
 class CreateUserView(generics.CreateAPIView):
@@ -42,6 +44,7 @@ class LoginView(TokenObtainPairView):
         username = request.data.get('username')
         password = request.data.get('password')
 
+        ##TODO move all this logic to services.py
         ##Check if the user exists
         try:
             user = CustomUserV2.objects.get(username = username)
@@ -128,4 +131,21 @@ class UpdatePasswordView(generics.UpdateAPIView):
             return Response({'success':'Password updated'}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
-#DeleteUserView, verify password, if it matches delete
+#DeleteUserView, verify password and JWT token. once authenticated delete user. 
+#TODO implement soft delete
+class DeleteUserView(generics.DestroyAPIView):
+    serializer_class = DeleteSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def delete(self, request, format=None):
+        #get password, verify its correct before deleting
+        user_record = request.user
+        password = request.data.get('password')
+        is_password_verified = verify_password(user_record, password)
+
+        if request.user == user_record and is_password_verified:
+            ok, response = delete_user(user_record)
+            if ok:
+                return Response(response, status=status.HTTP_204_NO_CONTENT)
+            return Response(response, status=status.HTTP_403_FORBIDDEN)
+        

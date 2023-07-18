@@ -51,4 +51,7 @@ class UpdatePasswordSerializer(UserSerializer):
     class Meta(UserSerializer.Meta):
         fields = ['new_password']
 
-#TODO CREATE DELETE SERIALIZER WHICH TAKES IN THE PASSWORD, AND USERNAME
+#TODO CREATE DELETE SERIALIZER WHICH TAKES IN THE PASSWORD
+class DeleteSerializer(UserSerializer):
+    class Meta(UserSerializer.Meta):
+        fields = ['password']
