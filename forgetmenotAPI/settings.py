@@ -12,6 +12,9 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 from pathlib import Path
 import os
+import firebase_admin
+import json
+from firebase_admin import credentials
 import datetime
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,14 +23,26 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
+#LOAD ENV variables
 SECRET_KEY = os.environ.get('SECRET_KEY')
+FIREBASE_PRIVATE_KEY = os.environ.get('FIREBASE_KEY')
+DB_NAME = os.environ.get('DB_NAME')
+DB_USER = os.environ.get('DB_USER')
+DB_PASSWORD = os.environ.get('DB_PASSWORD')
+DB_HOST = os.environ.get('DB_HOST')
+DB_PORT = os.environ.get('DB_PORT')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
 ALLOWED_HOSTS = []
 
+#initialize firebase SDK
+if FIREBASE_PRIVATE_KEY:
+    firebase_cred = credentials.Certificate(json.loads(FIREBASE_PRIVATE_KEY))
+    firebase_admin.initialize_app(firebase_cred)
+else:
+    raise EnvironmentError('FIREBASE_PRIVATE_KEY environment variable not set')
 
 # Application definition
 
@@ -80,11 +95,11 @@ WSGI_APPLICATION = 'forgetmenotAPI.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': os.environ.get('DB_NAME'),
-        'USER': os.environ.get('DB_USER'), 
-        'PASSWORD': os.environ.get('DB_PASSWORD'),
-        'HOST': os.environ.get('DB_HOST'), 
-        'PORT': os.environ.get('DB_PORT'),
+        'NAME': DB_NAME,
+        'USER': DB_USER, 
+        'PASSWORD': DB_PASSWORD,
+        'HOST': DB_HOST, 
+        'PORT': DB_PORT,
     }
 }
 

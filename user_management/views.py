@@ -1,7 +1,7 @@
 from datetime import timedelta
 
 from .models import CustomUserV2
-from .services import verify_password, delete_user
+from .services import verify_password, delete_user, register_user
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.core.exceptions import ObjectDoesNotExist
@@ -11,28 +11,21 @@ from .serializers import UserSerializer, UpdatePasswordSerializer, DeleteSeriali
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework.permissions import IsAuthenticated
+from firebase_admin import auth
 
 
 # CreateUserView creates a user
 class CreateUserView(generics.CreateAPIView):
     serializer_class = UserSerializer
 
-    def post(self, request):
+    def post(self, request, *ars, **kwargs):
         #validate the serializer, checking if valid
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-
-        #attempt to save user to DB
-        try:
-            user = serializer.save()
-        except Exception as e:
-            return Response({'error':str(e)},status=status.HTTP_400_BAD_REQUEST)
         
-        response_data = {
-            'message':f'User: {user.username} created succesfully, Please check your email for verification.'
-        }
-
-        return Response(response_data, status=status.HTTP_201_CREATED)     
+        #register the user in firebase, and save the user in db
+        response_data = register_user(serializer.validated_data)
+        return Response(response_data.get('message'), status=response_data.get('status'))
 
 #LoginView logs in a user and returns a JWT token
 class LoginView(TokenObtainPairView):
