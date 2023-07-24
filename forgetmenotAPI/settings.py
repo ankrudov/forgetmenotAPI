@@ -26,6 +26,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 #LOAD ENV variables
 SECRET_KEY = os.environ.get('SECRET_KEY')
 FIREBASE_PRIVATE_KEY = os.environ.get('FIREBASE_KEY')
+SENDGRID_API_KEY = os.environ.get('SENDGRID_KEY')
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL")
 DB_NAME = os.environ.get('DB_NAME')
 DB_USER = os.environ.get('DB_USER')
 DB_PASSWORD = os.environ.get('DB_PASSWORD')
@@ -56,6 +58,7 @@ INSTALLED_APPS = [
     'user_management',
     'rest_framework',
     'rest_framework_simplejwt',
+    'sendgrid',
 ]
 
 MIDDLEWARE = [
@@ -87,7 +90,6 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'forgetmenotAPI.wsgi.application'
-
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
@@ -193,3 +195,14 @@ SIMPLE_JWT = {
 
 #Use custom user model
 AUTH_USER_MODEL = 'user_management.CustomUserv2'
+
+# Twilio SendGrid
+EMAIL_HOST = 'smtp.sendgrid.net'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'forgetmenot' # Name for all the SenGrid accounts
+EMAIL_HOST_PASSWORD = SENDGRID_API_KEY
+
+# The email you'll be sending emails from
+DEFAULT_FROM_EMAIL = DEFAULT_FROM_EMAIL
+LOGIN_REDIRECT_URL = 'success'

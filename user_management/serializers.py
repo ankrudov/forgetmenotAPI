@@ -33,9 +33,10 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CustomUserV2
-        fields = ['pk', 'username', 'phone_number', 'updated_on', 'failed_login_attempts', 'last_failed_login', 'is_superuser', 'first_name', 'last_name', 'email', 'is_staff', 'is_active', 'password']
+        fields = ['pk', 'username', 'phone_number', 'updated_on', 'failed_login_attempts', 'last_failed_login', 'is_superuser', 'first_name', 'last_name', 'email', 'is_staff', 'is_active', 'password', 'is_verified']
         extra_kwargs = {
-            'password':{'write_only':True}
+            'password':{'write_only':True},
+            'is_verified':{'write_only':True}
         }
 
 #UpdatePasswordSerializer hashes the password on update and takes in a new_password from the request

@@ -1,5 +1,8 @@
+import os
 from .models import CustomUserV2
 from firebase_admin import auth
+import sendgrid
+from sendgrid.helpers.mail import Mail
 from rest_framework.response import Response
 from rest_framework import status
 from django.core.exceptions import ObjectDoesNotExist
@@ -38,6 +41,8 @@ def register_user(validated_data):
         user = auth.create_user(email=email, password=password)
     except Exception as e:
         return {'message': str(e), 'status':status.HTTP_400_BAD_REQUEST}
+    #verification link
+    verification_link = auth.generate_email_verification_link(email)
     
     #save user to DB 
     user_model = CustomUserV2.objects.create(
@@ -49,8 +54,30 @@ def register_user(validated_data):
         is_active=is_active,
         phone_number=phone_number,
     )
+    try:
+        send_registration_email(email, username, verification_link)
+    except Exception as e:
+        return {'message': f'Failed to send registration email: {str(e)}', 'status':status.HTTP_500_INTERNAL_SERVER_ERROR}
+    
     response_data = {
         'message': f'User: {user_model.username} created successfully. Please check your email for verification.',
         'status': status.HTTP_201_CREATED
     }
     return response_data
+#send_registration_email sends email via sendgrid
+def send_registration_email(email, username, email_link):
+    try:
+        sg = sendgrid.SendGridAPIClient(api_key=os.environ.get('SENDGRID_KEY'))
+        mail = Mail(
+            from_email=os.environ.get("DEFAULT_FROM_EMAIL"),
+            to_emails=email
+        )
+        mail.template_id = os.environ.get('SENDGRID_TEMPLATE_ID')
+        mail.dynamic_template_data = {
+            'username':username,
+            'verification_link':email_link
+        }
+        response = sg.send(mail)
+    except Exception as e:
+        print(f"Error occurred while sending email: {e}")
+

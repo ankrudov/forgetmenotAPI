@@ -7,6 +7,7 @@ class CustomUserV2(AbstractUser):
     updated_on = models.DateTimeField(auto_now=True)
     failed_login_attempts = models.IntegerField(default=0)
     last_failed_login = models.DateTimeField(null=True)
+    is_verified = models.BooleanField(default=False)
 
     def __str__(self):
         return self.username
