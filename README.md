@@ -1,5 +1,5 @@
 # forgetmenotAPI
-backend service API for the forgetmenot app. written in django
+backend service API for the forgetmenot app. written in django, uses firebase, and twillio integrations.
 
 AFTER cloning this Repo into your local machine you will need to create a virtual env at the same level as the project **NOT** inside the project
 Latest python version must be installed
