@@ -1,4 +1,6 @@
 import os
+from datetime import timedelta
+
 from .models import CustomUserV2
 from firebase_admin import auth
 import sendgrid
@@ -6,6 +8,8 @@ from sendgrid.helpers.mail import Mail
 from rest_framework.response import Response
 from rest_framework import status
 from django.core.exceptions import ObjectDoesNotExist
+from django.utils import timezone
+from .serializers import UserSerializer
 
 
 
@@ -40,7 +44,7 @@ def register_user(validated_data):
     try:
         user = auth.create_user(email=email, password=password)
     except Exception as e:
-        return {'message': str(e), 'status':status.HTTP_400_BAD_REQUEST}
+        return False,{'error': str(e), 'status':status.HTTP_400_BAD_REQUEST}
     #verification link
     verification_link = auth.generate_email_verification_link(email)
     
@@ -57,13 +61,21 @@ def register_user(validated_data):
     try:
         send_registration_email(email, username, verification_link)
     except Exception as e:
-        return {'message': f'Failed to send registration email: {str(e)}', 'status':status.HTTP_500_INTERNAL_SERVER_ERROR}
-    
+        return False,{'error': f'Failed to send registration email: {str(e)}', 'status':status.HTTP_500_INTERNAL_SERVER_ERROR}
+    try:
+        user = CustomUserV2.objects.get(username=username)
+        user_serializer = UserSerializer(user)
+    except ObjectDoesNotExist as e:
+        return False, {'error':'user not found', 'status':status.HTTP_404_NOT_FOUND}
     response_data = {
-        'message': f'User: {user_model.username} created successfully. Please check your email for verification.',
+        'response':{
+            'message': f'User: {user_model.username} created successfully. Please check your email for verification.',
+            'user': user_serializer.data
+        },
         'status': status.HTTP_201_CREATED
+        
     }
-    return response_data
+    return True, response_data
 #send_registration_email sends email via sendgrid
 def send_registration_email(email, username, email_link):
     try:
@@ -81,3 +93,16 @@ def send_registration_email(email, username, email_link):
     except Exception as e:
         print(f"Error occurred while sending email: {e}")
 
+def login_user(id_token):
+    try:
+        decoded_token = auth.verify_id_token(id_token)
+        username = decoded_token['username']
+        user = CustomUserV2.objects.get(username=username)
+        user_serializer = UserSerializer(user)
+        return True, {'user':user_serializer.data, 'status':status.HTTP_200_OK}
+    except ValueError as e:
+        return False, {'error':'invalid id token', 'status':status.HTTP_403_FORBIDDEN}
+    except auth.UnexpectedResponseError as e :
+        return False, {'error':'unexpected error', 'status':status.HTTP_400_BAD_REQUEST}
+    except ObjectDoesNotExist as e:
+        return False, {'error':'user not found', 'status':status.HTTP_404_NOT_FOUND}
