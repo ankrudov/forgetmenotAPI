@@ -12,6 +12,9 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 from pathlib import Path
 import os
+import firebase_admin
+import json
+from firebase_admin import credentials
 import datetime
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,14 +23,28 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
+#LOAD ENV variables
 SECRET_KEY = os.environ.get('SECRET_KEY')
+FIREBASE_PRIVATE_KEY = os.environ.get('FIREBASE_KEY')
+SENDGRID_API_KEY = os.environ.get('SENDGRID_KEY')
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL")
+DB_NAME = os.environ.get('DB_NAME')
+DB_USER = os.environ.get('DB_USER')
+DB_PASSWORD = os.environ.get('DB_PASSWORD')
+DB_HOST = os.environ.get('DB_HOST')
+DB_PORT = os.environ.get('DB_PORT')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
 ALLOWED_HOSTS = []
 
+#initialize firebase SDK
+if FIREBASE_PRIVATE_KEY:
+    firebase_cred = credentials.Certificate(json.loads(FIREBASE_PRIVATE_KEY))
+    firebase_admin.initialize_app(firebase_cred)
+else:
+    raise EnvironmentError('FIREBASE_PRIVATE_KEY environment variable not set')
 
 # Application definition
 
@@ -41,6 +58,7 @@ INSTALLED_APPS = [
     'user_management',
     'rest_framework',
     'rest_framework_simplejwt',
+    'sendgrid',
 ]
 
 MIDDLEWARE = [
@@ -73,18 +91,17 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'forgetmenotAPI.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': os.environ.get('DB_NAME'),
-        'USER': os.environ.get('DB_USER'), 
-        'PASSWORD': os.environ.get('DB_PASSWORD'),
-        'HOST': os.environ.get('DB_HOST'), 
-        'PORT': os.environ.get('DB_PORT'),
+        'NAME': DB_NAME,
+        'USER': DB_USER, 
+        'PASSWORD': DB_PASSWORD,
+        'HOST': DB_HOST, 
+        'PORT': DB_PORT,
     }
 }
 
@@ -178,3 +195,14 @@ SIMPLE_JWT = {
 
 #Use custom user model
 AUTH_USER_MODEL = 'user_management.CustomUserv2'
+
+# Twilio SendGrid
+EMAIL_HOST = 'smtp.sendgrid.net'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'forgetmenot' # Name for all the SenGrid accounts
+EMAIL_HOST_PASSWORD = SENDGRID_API_KEY
+
+# The email you'll be sending emails from
+DEFAULT_FROM_EMAIL = DEFAULT_FROM_EMAIL
+LOGIN_REDIRECT_URL = 'success'
