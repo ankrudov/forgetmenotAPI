@@ -28,14 +28,13 @@ class CreateUserView(generics.CreateAPIView):
             return Response(response.get('error'), status=response.get('status'))
         return Response(response.get('response'), status=response.get('status'))
 
-#LoginView logs in a user and returns a JWT token
+#LoginView logs in a user 
 class LoginView(APIView):
     def post(self, request, *args, **kwargs):
-        idToken = request.META.get('HTTP_AUTHORIZATION', None)
-        if idToken:
-            idToken = idToken.split(' ')[1]  # Remove "Bearer " from the token string
-        else:
+        idToken = request.headers.get('Authorization').split(' ')[1]
+        if not idToken:
             return Response({'error':'Authorization token not found'}, status=status.HTTP_400_BAD_REQUEST)
+        
         ok, response = login_user(idToken)
         #return error if an exception is raised, return user if everything succeded
         if not ok:
@@ -86,21 +85,15 @@ class UpdatePasswordView(generics.UpdateAPIView):
             return Response({'success':'Password updated'}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
-#DeleteUserView, verify password and JWT token. once authenticated delete user. 
-#TODO implement soft delete
+#DeleteUserView, verifies token from the firebase auth send from the frontend, soft deletes user, then sends response to client for firebase deactivate
 class DeleteUserView(generics.DestroyAPIView):
-    serializer_class = DeleteSerializer
-    permission_classes = [IsAuthenticated]
-    
     def delete(self, request, format=None):
-        #get password, verify its correct before deleting
-        user_record = request.user
-        password = request.data.get('password')
-        is_password_verified = verify_password(user_record, password)
-
-        if request.user == user_record and is_password_verified:
-            ok, response = delete_user(user_record)
-            if ok:
-                return Response(response, status=status.HTTP_204_NO_CONTENT)
-            return Response(response, status=status.HTTP_403_FORBIDDEN)
-        
+        idToken = request.headers.get('Authorization').split(' ')[1]
+        if idToken:
+            idToken = idToken.split(' ')[1]  # Remove "Bearer " from the token string
+        else:
+            return Response({'error':'Authorization token not found'}, status=status.HTTP_400_BAD_REQUEST)
+        ok, response = delete_user(idToken)
+        if not ok:
+            return Response(response.get('error'), status=response.get('status'))
+        return Response(response.get('user'), status=response.get('status'))

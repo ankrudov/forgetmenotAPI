@@ -20,14 +20,6 @@ def verify_password(user, password):
     else:
         return True
 
-#delete_user deletes a user
-def delete_user(user):
-    try:
-        user.delete()
-        return True, {"success": "user deleted"}
-    except ObjectDoesNotExist:
-        return False, {"error": "object does not exist"}
-    
 def register_user(validated_data):
     # Get user data from the validated data
     username = validated_data.get('username')
@@ -45,6 +37,8 @@ def register_user(validated_data):
         user = auth.create_user(email=email, password=password)
     except Exception as e:
         return False,{'error': str(e), 'status':status.HTTP_400_BAD_REQUEST}
+    #get uid to store in db
+    firebase_uid = user.uid
     #verification link
     verification_link = auth.generate_email_verification_link(email)
     
@@ -57,6 +51,7 @@ def register_user(validated_data):
         is_staff=is_staff,
         is_active=is_active,
         phone_number=phone_number,
+        firebase_uid = firebase_uid
     )
     try:
         send_registration_email(email, username, verification_link)
@@ -96,13 +91,29 @@ def send_registration_email(email, username, email_link):
 def login_user(id_token):
     try:
         decoded_token = auth.verify_id_token(id_token)
-        username = decoded_token['username']
-        user = CustomUserV2.objects.get(username=username)
+        firebase_uid = decoded_token['uid']
+        user = CustomUserV2.objects.get(firebase_uid=firebase_uid)
         user_serializer = UserSerializer(user)
         return True, {'user':user_serializer.data, 'status':status.HTTP_200_OK}
     except ValueError as e:
-        return False, {'error':'invalid id token', 'status':status.HTTP_403_FORBIDDEN}
+        return False, {'error':f'invalid id token {e}', 'status':status.HTTP_403_FORBIDDEN}
     except auth.UnexpectedResponseError as e :
-        return False, {'error':'unexpected error', 'status':status.HTTP_400_BAD_REQUEST}
+        return False, {'error':f'unexpected error {e}', 'status':status.HTTP_400_BAD_REQUEST}
+    except ObjectDoesNotExist as e:
+        return False, {'error':'user not found', 'status':status.HTTP_404_NOT_FOUND}
+    
+#delete_user deactivates a user, and verifies the users token, returns a success response to the client to delete in firebase
+def delete_user(id_token):
+    try:
+        decoded_token = auth.verify_id_token(id_token)
+        username = decoded_token['username']
+        user = CustomUserV2.objects.get(username=username)
+        user.is_active = False
+        user.save()
+        return True, {"success": "user deleted", 'status':status.HTTP_200_OK}
+    except ValueError as e:
+        return False, {'error':f'invalid id token {e}', 'status':status.HTTP_403_FORBIDDEN}
+    except auth.UnexpectedResponseError as e :
+        return False, {'error':f'unexpected error {e}', 'status':status.HTTP_400_BAD_REQUEST}
     except ObjectDoesNotExist as e:
         return False, {'error':'user not found', 'status':status.HTTP_404_NOT_FOUND}
