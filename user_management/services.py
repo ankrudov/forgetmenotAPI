@@ -1,24 +1,11 @@
 import os
-from datetime import timedelta
-
 from .models import CustomUserV2
 from firebase_admin import auth
 import sendgrid
 from sendgrid.helpers.mail import Mail
-from rest_framework.response import Response
 from rest_framework import status
 from django.core.exceptions import ObjectDoesNotExist
-from django.utils import timezone
 from .serializers import UserSerializer
-
-
-
-#check_password takes in a user object, and a password,returns a boolean 
-def verify_password(user, password):
-    if not user.check_password(password):
-        return False
-    else:
-        return True
 
 def register_user(validated_data):
     # Get user data from the validated data
@@ -88,13 +75,17 @@ def send_registration_email(email, username, email_link):
     except Exception as e:
         print(f"Error occurred while sending email: {e}")
 
+#login_user logs in a user after verifying firebase token
 def login_user(id_token):
     try:
         decoded_token = auth.verify_id_token(id_token)
         firebase_uid = decoded_token['uid']
         user = CustomUserV2.objects.get(firebase_uid=firebase_uid)
         user_serializer = UserSerializer(user)
+
         return True, {'user':user_serializer.data, 'status':status.HTTP_200_OK}
+    except user.is_active == False:
+        return False, {'error':'user is not active', 'status':status.HTTP_404_NOT_FOUND}
     except ValueError as e:
         return False, {'error':f'invalid id token {e}', 'status':status.HTTP_403_FORBIDDEN}
     except auth.UnexpectedResponseError as e :
@@ -106,11 +97,42 @@ def login_user(id_token):
 def delete_user(id_token):
     try:
         decoded_token = auth.verify_id_token(id_token)
-        username = decoded_token['username']
-        user = CustomUserV2.objects.get(username=username)
+        firebase_uid = decoded_token['uid']
+        user = CustomUserV2.objects.get(firebase_uid=firebase_uid)
         user.is_active = False
         user.save()
         return True, {"success": "user deleted", 'status':status.HTTP_200_OK}
+    except ValueError as e:
+        return False, {'error':f'invalid id token {e}', 'status':status.HTTP_403_FORBIDDEN}
+    except auth.UnexpectedResponseError as e :
+        return False, {'error':f'unexpected error {e}', 'status':status.HTTP_400_BAD_REQUEST}
+    except ObjectDoesNotExist as e:
+        return False, {'error':'user not found', 'status':status.HTTP_404_NOT_FOUND}
+
+#update_user takes in validated request data, and an id_token to update a users info in the DB, this only updates user info NOT password or email
+def update_user(validated_data, id_token):
+    username = validated_data.get('username')
+    first_name = validated_data.get('first_name')
+    last_name = validated_data.get('last_name')
+    is_superuser = validated_data.get('is_superuser')
+    is_staff = validated_data.get('is_staff')
+    phone_number = validated_data.get('phone_number')
+    try:
+        decoded_token = auth.verify_id_token(id_token)
+        firebase_uid = decoded_token['uid']
+        user = CustomUserV2.objects.get(firebase_uid=firebase_uid)
+        user.username = username
+        user.first_name = first_name
+        user.last_name = last_name
+        user.is_superuser = is_superuser
+        user.is_staff = is_staff
+        user.phone_number = phone_number
+        #save new user info to DB
+        user.save()
+        #serialize data to return in response
+        user_serializer = UserSerializer(user)
+
+        return True, {"user": user_serializer.data, 'status':status.HTTP_200_OK}
     except ValueError as e:
         return False, {'error':f'invalid id token {e}', 'status':status.HTTP_403_FORBIDDEN}
     except auth.UnexpectedResponseError as e :
