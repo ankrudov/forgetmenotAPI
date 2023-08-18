@@ -32,6 +32,7 @@ class LoginView(APIView):
             return Response(response.get('error'), status=response.get('status'))
         return Response(response.get('user'), status=response.get('status'))
     
+    
 # UpdateUserView is allows the user to update their information
 class UpdateUserView(generics.UpdateAPIView): 
     serializer_class = UpdateUserSerializer
