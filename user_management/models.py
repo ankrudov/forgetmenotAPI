@@ -8,7 +8,7 @@ class CustomUserV2(AbstractUser):
     failed_login_attempts = models.IntegerField(default=0)
     last_failed_login = models.DateTimeField(null=True)
     is_verified = models.BooleanField(default=False)
-
+    firebase_uid = models.CharField(max_length=255, unique=True, null=True)
     def __str__(self):
         return self.username
     
