@@ -8,7 +8,7 @@ from .serializers import UserSerializer, UpdateUserSerializer
 # CreateUserView creates a user
 class CreateUserView(generics.CreateAPIView):
     serializer_class = UserSerializer
-    def post(self, request, *ars, **kwargs):
+    def post(self, request, *args, **kwargs):
         #validate the serializer, checking if valid
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)

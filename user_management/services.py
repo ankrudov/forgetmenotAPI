@@ -44,6 +44,7 @@ def register_user(validated_data):
         send_registration_email(email, username, verification_link)
     except Exception as e:
         return False,{'error': f'Failed to send registration email: {str(e)}', 'status':status.HTTP_500_INTERNAL_SERVER_ERROR}
+    #checks if user exits before sending over the response with user info 
     try:
         user = CustomUserV2.objects.get(username=username)
         user_serializer = UserSerializer(user)
